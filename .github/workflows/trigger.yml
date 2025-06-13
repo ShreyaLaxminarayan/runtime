@@ -1,37 +1,20 @@
-name: Jenkins Trigger on PR Comment Mention
+name: Trigger Jenkins on PR Comment
+
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  trigger_jenkins:
+  send-to-jenkins:
+    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@Dotnet-s390x')
     runs-on: ubuntu-latest
-    if: |
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@Dotnet-s390x')
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Send curl request to Jenkins
+      - name: Send webhook to Jenkins
         run: |
-          YOUR_GITHUB_USERNAME="@Dotnet-s390x"
-          COMMENTER_USERNAME="${{ github.event.comment.user.login }}"
-          PR_NUMBER="${{ github.event.issue.number }}"
-          COMMENT_BODY="${{ github.event.comment.body }}"
-          ENCODED_COMMENT_BODY=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$COMMENT_BODY")
-          JENKINS_BASE_URL="http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123"
-          JENKINS_URL="${JENKINS_BASE_URL}&commenter_username=${COMMENTER_USERNAME}&pr_number=${PR_NUMBER}&comment_body=${ENCODED_COMMENT_BODY}"
-          #JENKINS_URL="${{ secrets.JENKINS_WEBHOOK_URL }}?commenter_username=${COMMENTER_USERNAME}&pr_number=${PR_NUMBER}&comment_body=${ENCODED_COMMENT_BODY}"
-
-          echo "Attempting to send curl request to Jenkins..."
-          echo "URL: $JENKINS_URL"
-
-          curl -X POST "$JENKINS_URL" \
-            -H "Content-Type: application/json" \
-            --fail-with-body \
-            --show-error
-
-        env:
-          NODE_OPTIONS: --trace-warnings
+          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=$mysecret123" \
+          -H "Content-Type: application/json" \
+          -d '{
+                "pr_number": "'${{ github.event.issue.number }}'",
+                "comment_body": "'${{ github.event.comment.body }}'",
+                "comment_user": "'${{ github.event.comment.user.login }}'"
+              }'
