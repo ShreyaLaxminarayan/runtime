@@ -3,6 +3,7 @@ name: Trigger Jenkins on Mention
 on:
   issue_comment:
     types: [created]
+
 jobs:
   trigger-jenkins:
     runs-on: ubuntu-latest
@@ -10,7 +11,7 @@ jobs:
     steps:
       - name: Send Webhook to Jenkins
         run: |
-            curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \            
+          curl -X POST "${{ env.JENKINS_URL }}/generic-webhook-trigger/invoke?token=mysecret123" \
             --data-urlencode "comment=${{ github.event.comment.body }}" \
             --data-urlencode "pr_number=${{ github.event.issue.number }}" \
             --data-urlencode "repository=${{ github.repository }}" \
