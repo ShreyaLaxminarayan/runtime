@@ -11,13 +11,11 @@ jobs:
     steps:
       - name: Trigger Jenkins Build via cURL
         run: |
-          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
-            -H "Content-Type: application/json" \
-            -d @- <<EOF
-          {
-            "repository": "${{ github.repository }}",
-            "pr_number": "${{ github.event.issue.number }}",
-            "comment": "${{ github.event.comment.body }}",
-            "sender": "${{ github.event.comment.user.login }}"
-          }
-          EOF
+          curl -X POST "http://<your-jenkins-host>:8080/generic-webhook-trigger/invoke?token=jenkins-bot" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -n \
+            --arg comment "${{ github.event.comment.body }}" \
+            --arg pr_number "${{ github.event.issue.number }}" \
+            --arg repository "${{ github.repository }}" \
+            --arg sender "${{ github.event.comment.user.login }}" \
+            '{comment: $comment, pr_number: $pr_number, repository: $repository, sender: $sender}')"
