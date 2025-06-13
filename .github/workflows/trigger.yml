@@ -11,10 +11,8 @@ jobs:
     steps:
       - name: Send Webhook to Jenkins
         run: |
-          curl -X POST "${{ env.JENKINS_URL }}/generic-webhook-trigger/invoke?token=mysecret123" \
+          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
             --data-urlencode "comment=${{ github.event.comment.body }}" \
             --data-urlencode "pr_number=${{ github.event.issue.number }}" \
             --data-urlencode "repository=${{ github.repository }}" \
             --data-urlencode "sender=${{ github.event.comment.user.login }}"
-        env:
-          JENKINS_URL: http://148.100.85.217:8080
