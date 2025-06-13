@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Trigger Jenkins Build via cURL
         run: |
-          curl -X POST "http://<your-jenkins-host>:8080/generic-webhook-trigger/invoke?token=jenkins-bot" \
+          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
           -H "Content-Type: application/json" \
           -d "$(jq -n \
             --arg comment "${{ github.event.comment.body }}" \
