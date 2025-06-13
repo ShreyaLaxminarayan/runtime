@@ -1,18 +1,38 @@
-name: Trigger Jenkins on Mention
-
+name: Jenkins Trigger on PR Comment Mention
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  trigger-jenkins:
+  trigger_jenkins:
     runs-on: ubuntu-latest
-    if: github.event.comment.body != '' && contains(github.event.comment.body, '@Dotnet-s390x')
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@Dotnet-s390x')
+
     steps:
-      - name: Send Webhook to Jenkins
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send curl request to Jenkins
         run: |
-          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
-            --data-urlencode "comment=${{ github.event.comment.body }}" \
-            --data-urlencode "pr_number=${{ github.event.issue.number }}" \
-            --data-urlencode "repository=${{ github.repository }}" \
-            --data-urlencode "sender=${{ github.event.comment.user.login }}"
+          YOUR_GITHUB_USERNAME="@Dotnet-s390x"
+          COMMENTER_USERNAME="${{ github.event.comment.user.login }}"
+          PR_NUMBER="${{ github.event.issue.number }}"
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          ENCODED_COMMENT_BODY=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$COMMENT_BODY")
+          JENKINS_URL="http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123?commenter_username=${COMMENTER_USERNAME}&pr_number=${PR_NUMBER}&comment_body=${ENCODED_COMMENT_BODY}"
+          # The JENKINS_WEBHOOK_URL should be stored as a GitHub Actions secret
+          # in your repository settings (e.g., https://your-jenkins-instance/generic-webhook-trigger/invoke?token=YOUR_JENKINS_TOKEN).
+          #JENKINS_URL="${{ secrets.JENKINS_WEBHOOK_URL }}?commenter_username=${COMMENTER_USERNAME}&pr_number=${PR_NUMBER}&comment_body=${ENCODED_COMMENT_BODY}"
+
+          echo "Attempting to send curl request to Jenkins..."
+          echo "URL: $JENKINS_URL"
+
+          curl -X POST "$JENKINS_URL" \
+            -H "Content-Type: application/json" \
+            --fail-with-body \
+            --show-error
+
+        env:
+          NODE_OPTIONS: --trace-warnings
