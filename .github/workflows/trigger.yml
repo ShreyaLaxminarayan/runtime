@@ -48,20 +48,20 @@ jobs:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
             auth="-u $JENKINS_USER:$JENKINS_TOKEN"
-            running=$(curl -s $auth "$JENKINS_URL/computer/api/json" | jq -r --arg PR "$PR_NUMBER" '
-              [.computer[]?.executors[]?.currentExecutable? 
-                | select(.actions[]? 
-                  | .parameters[]? 
+            running=$(curl -s $auth "$JENKINS_URL/job/build/api/json?tree=builds[number,url,building,actions[parameters[name,value]]]" \
+            | jq -r --arg PR "$PR_NUMBER" '
+              [.builds[]
+                | select(.building == true)
+                | select(.actions[]?.parameters[]?
                   | select(.name == "pr_number" and .value == $PR))] 
               | length')
-            
-            queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r --arg PR "$PR_NUMBER" --arg JOB "$TARGET_JOB" '
-              [.items[]?
-                | select(.task.name == $JOB) 
-                | select(.actions[]? 
-                  | .parameters[]? 
-                  | select(.name == "pr_number" and .value == $PR))] 
-              | length')
+
+            queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" \
+              | jq -r --arg PR "$PR_NUMBER" '
+                [.items[]
+                  | select(.actions[]?.parameters[]?
+                    | select(.name == "pr_number" and .value == $PR))] 
+                | length')
             
             echo "running=$running, queued=$queued"
             
