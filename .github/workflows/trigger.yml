@@ -76,7 +76,7 @@ jobs:
       - name: Comment that build is already in progress
         if: steps.jenkins_check.outputs.duplicate == 'true'
         env:
-          GITHUB_TOKEN: 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
+          GITHUB_TOKEN: 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
         run: |
           PR_NUMBER=${{ steps.extract.outputs.pr_number }}
           COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Ignoring this request."
