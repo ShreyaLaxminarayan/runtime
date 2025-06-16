@@ -30,7 +30,7 @@ permissions:
 jobs:
   check-and-trigger:
     runs-on: ubuntu-latest
-    if: ${{ github.event.comment.body != '' && (contains(github.event.comment.body, '@Dotnet-s390x build') || contains(github.event.comment.body, '@Dotnet-s390x cancel')) }}
+    if: ${{ github.event.comment.body != '' && (contains(toLower(github.event.comment.body), '@dotnet-s390x build') || contains(toLower(github.event.comment.body), '@dotnet-s390x cancel')) }}
 
     steps:
       - name: Extract PR number from comment
@@ -60,6 +60,7 @@ jobs:
           echo "cancel=$cancel" >> "$GITHUB_OUTPUT"
 
       - name: Cancel running/queued Jenkins build
+        id: jenkins_check
         if: steps.is_cancel.outputs.cancel == 'true'
         env:
           JENKINS_URL: http://148.100.85.217:8080
