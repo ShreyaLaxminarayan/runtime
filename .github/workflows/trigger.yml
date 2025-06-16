@@ -1,20 +1,91 @@
-name: Trigger Jenkins on PR Comment
+# name: Trigger Jenkins on PR Comment
+
+# on:
+#   issue_comment:
+#     types: [created]
+
+# jobs:
+#   send-to-jenkins:
+#     if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@Dotnet-s390x')
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Send webhook to Jenkins
+#         run: |
+#           curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
+#           -H "Content-Type: application/json" \
+#           -d '{
+#                 "pr_number": "'${{ github.event.issue.number }}'",
+#                 "comment_body": "'${{ github.event.comment.body }}'",
+#                 "comment_user": "'${{ github.event.comment.user.login }}'"
+#               }'
+
+name: Trigger Jenkins on Mention
 
 on:
   issue_comment:
     types: [created]
 
 jobs:
-  send-to-jenkins:
-    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@Dotnet-s390x')
+  check-and-trigger:
     runs-on: ubuntu-latest
+    if: |
+      github.event.comment.body != '' &&
+      contains(github.event.comment.body, '@Dotnet-s390x')
+
     steps:
-      - name: Send webhook to Jenkins
+      - name: Extract PR number from comment
+        id: extract
         run: |
-          curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
-          -H "Content-Type: application/json" \
-          -d '{
-                "pr_number": "'${{ github.event.issue.number }}'",
-                "comment_body": "'${{ github.event.comment.body }}'",
-                "comment_user": "'${{ github.event.comment.user.login }}'"
-              }'
+          echo "pr_number=$(jq --raw-output .issue.number <<< "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+
+      - name: Check Jenkins for duplicate PR build
+        id: jenkins_check
+        env:
+          JENKINS_URL: http://148.100.85.217:8080
+          JENKINS_USER: admin
+          JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
+          TARGET_JOB: build
+          PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
+        run: |
+          auth="-u $JENKINS_USER:$JENKINS_TOKEN"
+
+          running=$(curl -s $auth "$JENKINS_URL/computer/api/json" | jq -r --arg PR "$PR_NUMBER" '
+          [.computer[].executors[].currentExecutable | select(.actions[].parameters[]? | select(.name == "pr_number" and .value == $PR))] | length')
+
+          
+          queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r --arg PR "$PR_NUMBER" --arg JOB "$TARGET_JOB" '
+            [.items[] | select(.task.name == $JOB) | select(.actions[].parameters[]? | select(.name == "pr_number" and .value == $PR))] | length')
+
+          echo "running=$running, queued=$queued"
+
+          if [[ "$running" != "0" || "$queued" != "0" ]]; then
+            echo "duplicate=true" >> $GITHUB_OUTPUT
+          else
+            echo "duplicate=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment that build is already in progress
+        if: steps.jenkins_check.outputs.duplicate == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
+        run: |
+          COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Ignoring this request."
+          curl -s -H "Authorization: token $GITHUB_TOKEN" \
+               -H "Content-Type: application/json" \
+               -X POST \
+               -d "{ \"body\": \"$COMMENT\" }" \
+               https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments
+
+      - name: Trigger Jenkins build
+        if: steps.jenkins_check.outputs.duplicate == 'false'
+        env:
+          JENKINS_URL: http://148.100.85.217:8080
+          JENKINS_USER: admin
+          JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
+        run: |
+          curl -X POST "$JENKINS_URL/job/build/buildWithParameters" \
+            --user "$JENKINS_USER:$JENKINS_TOKEN" \
+            --data-urlencode "pr_number=${{ steps.extract.outputs.pr_number }}" \
+            --data-urlencode "comment_user=${{ github.actor }}" \
+            --data-urlencode "comment_body=${{ github.event.comment.body }}"
