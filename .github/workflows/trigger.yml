@@ -97,7 +97,7 @@ jobs:
           done
 
       - name: Check Jenkins for duplicate PR build
-        id: steps.is_build.outputs.build == 'true'
+        if: ${{ steps.is_build.outputs.build == 'true' }}
         env:
           JENKINS_URL: http://148.100.85.217:8080
           JENKINS_USER: admin
@@ -132,7 +132,7 @@ jobs:
             fi
 
       - name: Comment that build is already in progress
-        if: steps.is_build.outputs.build == 'true' && steps.jenkins_check.outputs.duplicate == 'true'
+        if: ${{ steps.is_build.outputs.build == 'true' && steps.jenkins_check.outputs.duplicate == 'true' }}
         env:
           #GITHUB_TOKEN: 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
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -148,7 +148,7 @@ jobs:
 
 
       - name: Trigger Jenkins build
-        if: steps.is_build.outputs.build == 'true' && steps.jenkins_check.outputs.duplicate == 'false'
+        if: ${{ steps.is_build.outputs.build == 'true' && steps.jenkins_check.outputs.duplicate == 'false' }}
         env:
           JENKINS_URL: http://148.100.85.217:8080
           JENKINS_USER: admin
