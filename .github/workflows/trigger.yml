@@ -78,7 +78,6 @@ jobs:
         env:
           #GITHUB_TOKEN: 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
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          GH_TOKEN: ${{ secrets.JENKINS_TOKEN }} 
           
         run: |
           PR_NUMBER=${{ steps.extract.outputs.pr_number }}
@@ -89,7 +88,6 @@ jobs:
                -d "{\"body\": \"$COMMENT\"}" \
                "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
 
-          gh pr comment "$PR_NUMBER" --body "$COMMENT"
 
       - name: Trigger Jenkins build
         if: steps.jenkins_check.outputs.duplicate == 'false'
