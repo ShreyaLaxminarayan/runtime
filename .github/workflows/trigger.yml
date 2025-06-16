@@ -36,7 +36,7 @@ jobs:
       - name: Extract PR number from comment
         id: extract
         run: |
-          echo "pr_number=$(jq --raw-output .issue.number <<< "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$(jq --raw-output .issue.number "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
 
       - name: Check Jenkins for duplicate PR build
         id: jenkins_check
@@ -55,7 +55,6 @@ jobs:
                   | select(.name == "pr_number" and .value == $PR))] 
               | length')
             
-            # Check queued builds
             queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r --arg PR "$PR_NUMBER" --arg JOB "$TARGET_JOB" '
               [.items[]?
                 | select(.task.name == $JOB) 
