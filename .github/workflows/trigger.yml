@@ -30,10 +30,7 @@ permissions:
 jobs:
   check-and-trigger:
     runs-on: ubuntu-latest
-    if: |
-      github.event.comment.body != '' &&
-      (contains(github.event.comment.body, '@Dotnet-s390x build') ||
-       contains(github.event.comment.body, '@Dotnet-s390x cancel'))
+    if: ${{ github.event.comment.body != '' && (contains(github.event.comment.body, '@Dotnet-s390x build') || contains(github.event.comment.body, '@Dotnet-s390x cancel')) }}
 
     steps:
       - name: Extract PR number from comment
@@ -43,10 +40,11 @@ jobs:
 
       - name: Check if build comment
         id: is_build
+        env:
+          BODY: ${{ github.event.comment.body }}
         run: |
           build="false"
-          body="${{ github.event.comment.body }}"
-          if echo "$body" | grep -qi "@Dotnet-s390x build"; then
+          if echo "$BODY" | grep -qi "@Dotnet-s390x build"; then
             build="true"
           fi
           echo "build=$build" >> "$GITHUB_OUTPUT"
