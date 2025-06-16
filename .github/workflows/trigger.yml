@@ -76,16 +76,16 @@ jobs:
       - name: Comment that build is already in progress
         if: steps.jenkins_check.outputs.duplicate == 'true'
         env:
-          PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: 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
         run: |
+          PR_NUMBER=${{ steps.extract.outputs.pr_number }}
           COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Ignoring this request."
           curl -s -H "Authorization: token $GITHUB_TOKEN" \
                -H "Content-Type: application/json" \
                -X POST \
                -d "{ \"body\": \"$COMMENT\" }" \
-               https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments
+               "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments"
 
       - name: Trigger Jenkins build
         if: steps.jenkins_check.outputs.duplicate == 'false'
