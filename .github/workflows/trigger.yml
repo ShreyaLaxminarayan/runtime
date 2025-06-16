@@ -20,7 +20,6 @@
 #               }'
 
 name: Trigger Jenkins on Mention
-
 on:
   issue_comment:
     types: [created]
