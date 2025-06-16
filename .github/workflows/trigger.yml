@@ -48,6 +48,7 @@ jobs:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
             auth="-u $JENKINS_USER:$JENKINS_TOKEN"
+            curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/api/json?tree=builds[number,url,building,actions[parameters[name,value]]]" | jq .
             running=$(curl -s $auth "$JENKINS_URL/job/build/api/json?tree=builds[number,url,building,actions[parameters[name,value]]]" \
             | jq -r --arg PR "$PR_NUMBER" '
               [.builds[]
