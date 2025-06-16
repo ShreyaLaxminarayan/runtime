@@ -77,7 +77,7 @@ jobs:
         if: steps.jenkins_check.outputs.duplicate == 'true'
         env:
           #GITHUB_TOKEN: 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
-          GITHUB_TOKEN: ${{ secrets.JENKINS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GH_TOKEN: ${{ secrets.JENKINS_TOKEN }} 
           
         run: |
