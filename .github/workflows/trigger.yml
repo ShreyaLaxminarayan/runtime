@@ -49,24 +49,23 @@ jobs:
         run: |
             auth="-u $JENKINS_USER:$JENKINS_TOKEN"
             curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/api/json?tree=builds[number,url,building,actions[parameters[name,value]]]" | jq .
-            running=$(curl -s $auth "$JENKINS_URL/job/build/api/json?tree=builds[number,url,building,actions[parameters[name,value]]]" \
-            | jq -r --arg PR "$PR_NUMBER" '
-              [.builds[]
-                | select(.building == true)
-                | select(.actions[]?.parameters[]?
-                  | select(.name == "pr_number" and .value == $PR))] 
-              | length')
+            running=$(curl -s $auth "$JENKINS_URL/job/build/lastBuild/api/json" \
+            is_running=$(echo "$BUILD_INFO" | jq -r '.building')
+            if [ "$is_running" = "true" ]; then
+              running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
+            else
+              running_pr=""
+            fi
 
-            queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" \
-              | jq -r --arg PR "$PR_NUMBER" '
-                [.items[]
-                  | select(.actions[]?.parameters[]?
-                    | select(.name == "pr_number" and .value == $PR))] 
-                | length')
+            queued_prs=$(curl -s $auth "JENKINS_URL/queue/api/json" | jq -r '
+              .items[] |
+              .actions[]?.parameters[]? |
+              select(.name == "pr_number") |
+              .value
+             ')
             
-            echo "running=$running, queued=$queued"
             
-            if [[ "$running" != "0" || "$queued" != "0" ]]; then
+            if [[ "$running_pr" == "$PR_TO_CHECK" ]] || echo "$queued_prs" | grep -q "^$PR_TO_CHECK$"; then
               echo "duplicate=true" >> $GITHUB_OUTPUT
             else
               echo "duplicate=false" >> $GITHUB_OUTPUT
