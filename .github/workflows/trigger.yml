@@ -47,22 +47,30 @@ jobs:
           TARGET_JOB: build
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          auth="-u $JENKINS_USER:$JENKINS_TOKEN"
-
-          running=$(curl -s $auth "$JENKINS_URL/computer/api/json" | jq -r --arg PR "$PR_NUMBER" '
-          [.computer[].executors[].currentExecutable | select(.actions[].parameters[]? | select(.name == "pr_number" and .value == $PR))] | length')
-
-          
-          queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r --arg PR "$PR_NUMBER" --arg JOB "$TARGET_JOB" '
-            [.items[] | select(.task.name == $JOB) | select(.actions[].parameters[]? | select(.name == "pr_number" and .value == $PR))] | length')
-
-          echo "running=$running, queued=$queued"
-
-          if [[ "$running" != "0" || "$queued" != "0" ]]; then
-            echo "duplicate=true" >> $GITHUB_OUTPUT
-          else
-            echo "duplicate=false" >> $GITHUB_OUTPUT
-          fi
+            auth="-u $JENKINS_USER:$JENKINS_TOKEN"
+            running=$(curl -s $auth "$JENKINS_URL/computer/api/json" | jq -r --arg PR "$PR_NUMBER" '
+              [.computer[]?.executors[]?.currentExecutable? 
+                | select(.actions[]? 
+                  | .parameters[]? 
+                  | select(.name == "pr_number" and .value == $PR))] 
+              | length')
+            
+            # Check queued builds
+            queued=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r --arg PR "$PR_NUMBER" --arg JOB "$TARGET_JOB" '
+              [.items[]?
+                | select(.task.name == $JOB) 
+                | select(.actions[]? 
+                  | .parameters[]? 
+                  | select(.name == "pr_number" and .value == $PR))] 
+              | length')
+            
+            echo "running=$running, queued=$queued"
+            
+            if [[ "$running" != "0" || "$queued" != "0" ]]; then
+              echo "duplicate=true" >> $GITHUB_OUTPUT
+            else
+              echo "duplicate=false" >> $GITHUB_OUTPUT
+            fi
 
       - name: Comment that build is already in progress
         if: steps.jenkins_check.outputs.duplicate == 'true'
