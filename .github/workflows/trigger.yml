@@ -65,7 +65,7 @@ jobs:
              ')
             
             
-            if [[ "$running_pr" == "$PR_TO_CHECK" ]] || echo "$queued_prs" | grep -q "^$PR_TO_CHECK$"; then
+            if [[ "$running_pr" == "$PR_NUMBER" ]] || echo "$queued_prs" | grep -q "^$PR_NUMBER$"; then
               echo "duplicate=true" >> $GITHUB_OUTPUT
             else
               echo "duplicate=false" >> $GITHUB_OUTPUT
