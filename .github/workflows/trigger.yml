@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.comment.body != '' &&
-      contains(toJson(github.event.comment.body), '@dotnet-s390x build') # case-insensitive match using lowercase
+      contains(toJson(github.event.comment.body), '@dotnet-s390x build')
 
     steps:
       - name: Extract PR number from comment
