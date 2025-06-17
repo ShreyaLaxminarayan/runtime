@@ -69,6 +69,7 @@ jobs:
           done
 
       - name: Check Jenkins for duplicate PR build
+        if: steps.is_cancel.outputs.cancel != 'true'
         id: jenkins_check
         env:
           JENKINS_URL: http://148.100.85.217:8080
@@ -104,7 +105,7 @@ jobs:
           fi
 
       - name: Comment that build is already in progress
-        if: steps.jenkins_check.outputs.duplicate == 'true'
+        if: steps.is_cancel.outputs.cancel != 'true' && steps.jenkins_check.outputs.duplicate == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -117,7 +118,7 @@ jobs:
                "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
 
       - name: Trigger Jenkins build
-        if: steps.jenkins_check.outputs.duplicate == 'false'
+        if: steps.is_cancel.outputs.cancel != 'true' && steps.jenkins_check.outputs.duplicate == 'false'
         env:
           JENKINS_URL: http://148.100.85.217:8080
           JENKINS_USER: admin
