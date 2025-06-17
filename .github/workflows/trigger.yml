@@ -143,7 +143,7 @@ jobs:
             --user "$JENKINS_USER:$JENKINS_TOKEN" \
             --data-urlencode "pr_number=${{ steps.extract.outputs.pr_number }}" \
             --data-urlencode "comment_user=${{ github.actor }}" \
-            --data-urlencode "comment_body=${{ github.event.comment.body }}"
+            --data-urlencode "comment_body=${{ github.event.comment.body }}" \
             --data-urlencode "head_branch=${{ steps.pr_info.outputs.head_branch }}" \
             --data-urlencode "base_branch=${{ steps.pr_info.outputs.base_branch }}"
 
