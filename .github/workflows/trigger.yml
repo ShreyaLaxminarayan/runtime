@@ -1,42 +1,25 @@
-# name: Trigger Jenkins on PR Comment
-
-# on:
-#   issue_comment:
-#     types: [created]
-
-# jobs:
-#   send-to-jenkins:
-#     if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@Dotnet-s390x')
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Send webhook to Jenkins
-#         run: |
-#           curl -X POST "http://148.100.85.217:8080/generic-webhook-trigger/invoke?token=mysecret123" \
-#           -H "Content-Type: application/json" \
-#           -d '{
-#                 "pr_number": "'${{ github.event.issue.number }}'",
-#                 "comment_body": "'${{ github.event.comment.body }}'",
-#                 "comment_user": "'${{ github.event.comment.user.login }}'"
-#               }'
-
-
 name: Trigger Jenkins on Mention
+
 on:
   issue_comment:
     types: [created]
+
 permissions:
   issues: write
+
 jobs:
   check-and-trigger:
     runs-on: ubuntu-latest
     if: |
       github.event.comment.body != '' &&
-      contains(github.event.comment.body, '@Dotnet-s390x')
+      contains(toJson(github.event.comment.body), '@dotnet-s390x build') # case-insensitive match using lowercase
+
     steps:
       - name: Extract PR number from comment
         id: extract
         run: |
           echo "pr_number=$(jq --raw-output .issue.number "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+
       - name: Check if cancel comment
         id: is_cancel
         run: |
@@ -46,6 +29,7 @@ jobs:
             cancel="true"
           fi
           echo "cancel=$cancel" >> "$GITHUB_OUTPUT"
+
       - name: Cancel running/queued Jenkins build
         if: steps.is_cancel.outputs.cancel == 'true'
         env:
@@ -56,10 +40,12 @@ jobs:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
           auth="-u $JENKINS_USER:$JENKINS_TOKEN"
+
           # Stop running build
           BUILD_INFO=$(curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/lastBuild/api/json")
           is_running=$(echo "$BUILD_INFO" | jq -r '.building')
           build_number=$(echo "$BUILD_INFO" | jq -r '.number')
+
           if [ "$is_running" = "true" ]; then
             running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
             if [ "$running_pr" = "$PR_NUMBER" ]; then
@@ -67,6 +53,7 @@ jobs:
               curl -X POST $auth "$JENKINS_URL/job/$TARGET_JOB/$build_number/stop"
             fi
           fi
+
           # Cancel queued builds
           queue_info=$(curl -s $auth "$JENKINS_URL/queue/api/json")
           echo "$queue_info" | jq -c '.items[]' | while read -r item; do
@@ -77,6 +64,7 @@ jobs:
               curl -X POST $auth "$JENKINS_URL/queue/cancelItem?id=$item_id"
             fi
           done
+
       - name: Check Jenkins for duplicate PR build
         id: jenkins_check
         env:
@@ -86,37 +74,36 @@ jobs:
           TARGET_JOB: build
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-            auth="-u $JENKINS_USER:$JENKINS_TOKEN"
-            BUILD_INFO=$(curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/lastBuild/api/json")
-            
-            is_running=$(echo "$BUILD_INFO" | jq -r '.building')
-            
-            if [ "$is_running" = "true" ]; then
-              running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
-            else
-              running_pr=""
-            fi
-            queued_prs=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r '
-              .items[]? 
-              | .actions[]?.parameters[]? 
-              | select(.name == "pr_number") 
-              | .value
-            ')
-            
-            echo "running_pr=$running_pr"
-            echo "queued_prs=$queued_prs"
-            
-            if [[ "$running_pr" == "$PR_NUMBER" ]] || echo "$queued_prs" | grep -q "^$PR_NUMBER$"; then
-              echo "duplicate=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "duplicate=false" >> "$GITHUB_OUTPUT"
-            fi
+          auth="-u $JENKINS_USER:$JENKINS_TOKEN"
+          BUILD_INFO=$(curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/lastBuild/api/json")
+
+          is_running=$(echo "$BUILD_INFO" | jq -r '.building')
+          if [ "$is_running" = "true" ]; then
+            running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
+          else
+            running_pr=""
+          fi
+
+          queued_prs=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r '
+            .items[]? 
+            | .actions[]?.parameters[]? 
+            | select(.name == "pr_number") 
+            | .value
+          ')
+
+          echo "running_pr=$running_pr"
+          echo "queued_prs=$queued_prs"
+
+          if [[ "$running_pr" == "$PR_NUMBER" ]] || echo "$queued_prs" | grep -q "^$PR_NUMBER$"; then
+            echo "duplicate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "duplicate=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Comment that build is already in progress
         if: steps.jenkins_check.outputs.duplicate == 'true'
         env:
-          #GITHUB_TOKEN: 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
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          
         run: |
           PR_NUMBER=${{ steps.extract.outputs.pr_number }}
           COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Ignoring this request."
@@ -125,6 +112,7 @@ jobs:
                -X POST \
                -d "{\"body\": \"$COMMENT\"}" \
                "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
+
       - name: Trigger Jenkins build
         if: steps.jenkins_check.outputs.duplicate == 'false'
         env:
