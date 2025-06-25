@@ -83,17 +83,29 @@ jobs:
           
           is_running=$(echo "$BUILD_INFO" | jq -r '.building')
           if [ "$is_running" = "true" ]; then
-            running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]? // empty | .parameters[]? // empty | select(.name == "pr_number") | .value')
+            running_pr=$(echo "$BUILD_INFO" | jq -r '
+              try (
+                .actions[]? 
+                | select(.parameters != null) 
+                | .parameters[]? 
+                | select(.name == "pr_number") 
+                | .value
+              ) catch ""')
           else
             running_pr=""
           fi
           
           queued_prs=$(curl -s $auth "$JENKINS_URL/queue/api/json" | jq -r '
-            .items[]? 
-            | .actions[]? // empty 
-            | .parameters[]? // empty 
-            | select(.name == "pr_number") 
-            | .value
+            [
+              .items[]? 
+              | try (
+                  .actions[]? 
+                  | select(.parameters != null) 
+                  | .parameters[]? 
+                  | select(.name == "pr_number") 
+                  | .value
+                ) catch empty
+            ] | .[]
           ')
           
           echo "running_pr=$running_pr"
