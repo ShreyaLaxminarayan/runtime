@@ -39,7 +39,7 @@ jobs:
           JENKINS_URL: http://148.100.85.217:8080
           JENKINS_USER: admin
           JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
-          TARGET_JOB: build
+          TARGET_JOB: dotnet-builds
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
           auth="-u $JENKINS_USER:$JENKINS_TOKEN"
@@ -75,7 +75,7 @@ jobs:
           JENKINS_URL: http://148.100.85.217:8080
           JENKINS_USER: admin
           JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
-          TARGET_JOB: build
+          TARGET_JOB: dotnet-builds
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
           auth="-u $JENKINS_USER:$JENKINS_TOKEN"
@@ -139,7 +139,7 @@ jobs:
           JENKINS_USER: admin
           JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
         run: |
-          curl -X POST "$JENKINS_URL/job/build/buildWithParameters" \
+          curl -X POST "$JENKINS_URL/job/dotnet-builds/buildWithParameters" \
             --user "$JENKINS_USER:$JENKINS_TOKEN" \
             --data-urlencode "pr_number=${{ steps.extract.outputs.pr_number }}" \
             --data-urlencode "comment_user=${{ github.actor }}" \
