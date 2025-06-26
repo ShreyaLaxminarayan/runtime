@@ -43,12 +43,9 @@ jobs:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
           auth="-u $JENKINS_USER:$JENKINS_TOKEN"
-
-          # Stop running build
           BUILD_INFO=$(curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/lastBuild/api/json")
           is_running=$(echo "$BUILD_INFO" | jq -r '.building')
           build_number=$(echo "$BUILD_INFO" | jq -r '.number')
-
           if [ "$is_running" = "true" ]; then
             running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
             if [ "$running_pr" = "$PR_NUMBER" ]; then
@@ -56,8 +53,6 @@ jobs:
               curl -X POST $auth "$JENKINS_URL/job/$TARGET_JOB/$build_number/stop"
             fi
           fi
-
-          # Cancel queued builds
           queue_info=$(curl -s $auth "$JENKINS_URL/queue/api/json")
           echo "$queue_info" | jq -c '.items[]' | while read -r item; do
             pr=$(echo "$item" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
@@ -123,7 +118,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           PR_NUMBER=${{ steps.extract.outputs.pr_number }}
-          COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Ignoring this request."
+          COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Please cancel the running build first by commenting "Dotnet-s390x cancel" before triggering the build again."
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                -H "Content-Type: application/json" \
                -X POST \
