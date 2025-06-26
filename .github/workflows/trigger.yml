@@ -34,22 +34,28 @@ jobs:
       - name: Cancel Jenkins build/queue if needed
         if: steps.meta.outputs.cancel == 'true'
         run: |
+          PR_NUMBER="${{ steps.meta.outputs.pr_number }}"
           auth="-u $JENKINS_USER:$JENKINS_TOKEN"
-          pr="${{ steps.meta.outputs.pr_number }}"
-
-          # Cancel running build
-          info=$(curl -s $auth "$JENKINS_URL/job/dotnet-builds/lastBuild/api/json")
-          if [ "$(echo "$info" | jq -r '.building')" = "true" ]; then
-            bpr=$(echo "$info" | jq -r '.actions[]?.parameters[]? | select(.name=="pr_number") | .value')
-            [ "$bpr" = "$pr" ] && curl -X POST $auth "$JENKINS_URL/job/dotnet-builds/$(echo "$info" | jq -r .number)/stop"
+          BUILD_INFO=$(curl -s $auth "$JENKINS_URL/job/$TARGET_JOB/lastBuild/api/json")
+          is_running=$(echo "$BUILD_INFO" | jq -r '.building')
+          build_number=$(echo "$BUILD_INFO" | jq -r '.number')
+          if [ "$is_running" = "true" ]; then
+            running_pr=$(echo "$BUILD_INFO" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
+            if [ "$running_pr" = "$PR_NUMBER" ]; then
+              echo "Stopping running build #$build_number"
+              curl -X POST $auth "$JENKINS_URL/job/$TARGET_JOB/$build_number/stop"
+            fi
           fi
-
-          # Cancel queued items
-          curl -s $auth "$JENKINS_URL/queue/api/json" | jq -c '.items[]' | while read -r item; do
-            [ "$(echo "$item" | jq -r '.actions[]?.parameters[]? | select(.name=="pr_number") | .value')" = "$pr" ] &&
-            curl -X POST $auth "$JENKINS_URL/queue/cancelItem?id=$(echo "$item" | jq -r .id)"
+          queue_info=$(curl -s $auth "$JENKINS_URL/queue/api/json")
+          echo "$queue_info" | jq -c '.items[]' | while read -r item; do
+            pr=$(echo "$item" | jq -r '.actions[]?.parameters[]? | select(.name == "pr_number") | .value')
+            item_id=$(echo "$item" | jq -r '.id')
+            if [ "$pr" = "$PR_NUMBER" ]; then
+              echo "Cancelling queued item ID $item_id"
+              curl -X POST $auth "$JENKINS_URL/queue/cancelItem?id=$item_id"
+            fi
           done
-
+          
       - name: Check for duplicate build
         if: steps.meta.outputs.cancel != 'true'
         id: dupe
