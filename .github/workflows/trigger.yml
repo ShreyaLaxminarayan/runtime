@@ -45,7 +45,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT="Hi! Please comment \"@Dotnet-s390x build\" to trigger a .NET runtime build on s390x"
+          COMMENT="run dotnet-build "
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                -H "Content-Type: application/json" \
                -X POST \
