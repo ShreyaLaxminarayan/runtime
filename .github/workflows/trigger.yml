@@ -39,9 +39,22 @@ jobs:
             echo intent="help" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Help 
+        if: steps.intent.outputs.intent == 'help'
+        id: Help  
+        env:
+          PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
+        run: |
+          COMMENT="Hi! Please comment \"@Dotnet-s390x build\" to trigger a .NET runtime build on s390x"
+          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+               -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"body\": \"$COMMENT\"}" \
+               "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
 
       - name: Cancel running/queued Jenkins build
         if: steps.intent.outputs.intent == 'cancel'
+        id: Cancel
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
@@ -116,7 +129,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT="A build has already started for PR ${PR_NUMBER}.Please cancel the running build first by commenting \"Dotnet-s390x cancel\" before triggering the build again."
+          COMMENT="A build has already started for PR ${PR_NUMBER}.Please cancel the running build first by commenting \"@Dotnet-s390x cancel\" before triggering the build again."
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                -H "Content-Type: application/json" \
                -X POST \
