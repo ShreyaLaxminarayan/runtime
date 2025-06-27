@@ -45,12 +45,16 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT="Hi! Please run \"@Dotnet-s390x build\" for triggering a .NET runtime build on s390x."
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          COMMENT='Hi! Please run "@Dotnet-s390x build" for triggering a .NET runtime build on s390x.'  
+          curl -s -H "Authorization: ***" \
                -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
+               -d @- \
+               "https://api.github.com/repos/ShreyaLaxminarayan/runtime/issues/${PR_NUMBER}/comments" <<EOF
+          {
+            "body": "$COMMENT"
+          }
+          EOF
 
       - name: Cancel running/queued Jenkins build
         if: steps.intent.outputs.intent == 'cancel'
