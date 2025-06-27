@@ -47,7 +47,7 @@ jobs:
         run: |
           COMMENT='Hi! Please run "@Dotnet-s390x build" for triggering a .NET runtime build on s390x.'  
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -H "Content-Type: application/json" \
+               -H "Content-Type: application/json" \
                -X POST \
                -d @- \
                "https://api.github.com/repos/ShreyaLaxminarayan/runtime/issues/${PR_NUMBER}/comments" <<EOF
