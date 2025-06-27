@@ -128,7 +128,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT=$' A build is already in progress for PR #${PR_NUMBER}.\n\nTo cancel the current build, please comment:\n\n```\n@Dotnet-s390x cancel\n```\n\nOnce cancelled, you can trigger a new build using:\n\n```\n@Dotnet-s390x build\n```'
+          COMMENT=$' A build is already in progress! \n\nTo cancel the current build, please comment:\n\n```\n@Dotnet-s390x cancel\n```\n\nOnce cancelled, you can trigger a new build using:\n\n```\n@Dotnet-s390x build\n```'
           gh api "repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments" \
               --method POST \
               --field body="$COMMENT"
