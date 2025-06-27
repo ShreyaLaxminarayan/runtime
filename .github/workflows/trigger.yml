@@ -33,8 +33,10 @@ jobs:
           body="${{ github.event.comment.body }}"
           if echo "$body" | grep -qi "@Dotnet-s390x cancel"; then
             echo intent="cancel" >> "$GITHUB_OUTPUT"
-          if echo "$body" | grep -qi "@Dotnet-s390x build"; then
+          elif echo "$body" | grep -qi "@Dotnet-s390x build"; then
             echo intent="build" >> "$GITHUB_OUTPUT"
+          else 
+            echo intent="help" >> "$GITHUB_OUTPUT"
           fi
 
 
