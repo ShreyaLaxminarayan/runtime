@@ -46,7 +46,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-            COMMENT=$'### s390x Build Bot Instructions\n\nTo **start** a .NET runtime build on s390x, comment:\n\n```\n@Dotnet-s390x build\n```\n\nTo **cancel** a running build:\n\n```\n@Dotnet-s390x cancel\n```'
+            COMMENT=$'### Dotnet-s390x Bot Instructions\n\nTo **start** a .NET runtime build on s390x, comment:\n\n```\n@Dotnet-s390x build\n```\n\nTo **cancel** a running build:\n\n```\n@Dotnet-s390x cancel\n```'
             gh api "repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments" \
               --method POST \
               --field body="$COMMENT"
