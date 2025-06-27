@@ -20,7 +20,7 @@ jobs:
     env:
       JENKINS_URL: http://148.100.85.217:8080
       JENKINS_USER: admin
-      JENKINS_TOKEN: 11a2c7cba8bca546b72c395935572854db
+      JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
       TARGET_JOB: dotnet-builds
       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
