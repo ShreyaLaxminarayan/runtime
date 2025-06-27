@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.comment.body != '' &&
-      contains(toJson(github.event.comment.body), '@dotnet-s390x') &&
+      contains(toJson(github.event.comment.body), '@Dotnet-s390x') &&
       github.event.comment.user.login != 'Dotnet-s390x'
 
     env:
@@ -46,7 +46,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-            COMMENT=$'### s390x Build Bot Instructions\n\nTo **start** a .NET runtime build on s390x, comment:\n\n```\n@dotnet-s390x build\n```\n\nTo **cancel** a running build:\n\n```\n@dotnet-s390x cancel\n```'
+            COMMENT=$'### s390x Build Bot Instructions\n\nTo **start** a .NET runtime build on s390x, comment:\n\n```\n@Dotnet-s390x build\n```\n\nTo **cancel** a running build:\n\n```\n@Dotnet-s390x cancel\n```'
             gh api "repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments" \
               --method POST \
               --field body="$COMMENT"
@@ -128,12 +128,10 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT="A build has already started for PR ${PR_NUMBER}.Please cancel the running build first by commenting \"@Dotnet-s390x cancel\" before triggering the build again."
-          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-               -H "Content-Type: application/json" \
-               -X POST \
-               -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
+          COMMENT=$' A build is already in progress for PR #${PR_NUMBER}.\n\nTo cancel the current build, please comment:\n\n```\n@Dotnet-s390x cancel\n```\n\nOnce cancelled, you can trigger a new build using:\n\n```\n@Dotnet-s390x build\n```'
+          gh api "repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments" \
+              --method POST \
+              --field body="$COMMENT"
 
       - name: Get PR head and base branches
         if: steps.intent.outputs.intent == 'build' && steps.jenkins_check.outputs.duplicate == 'false'
