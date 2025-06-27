@@ -13,8 +13,7 @@ jobs:
     if: |
       github.event.comment.body != '' &&
       (
-      contains(toJson(github.event.comment.body), '@dotnet-s390x build') ||
-      contains(toJson(github.event.comment.body), '@dotnet-s390x cancel')
+      contains(toJson(github.event.comment.body), '@dotnet-s390x') ||
       )
 
     env:
@@ -30,18 +29,19 @@ jobs:
         run: |
           echo "pr_number=$(jq --raw-output .issue.number "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
 
-      - name: Check if cancel comment
-        id: is_cancel
+      - name: Check the reason
+        id: intent
         run: |
-          cancel="false"
           body="${{ github.event.comment.body }}"
           if echo "$body" | grep -qi "@Dotnet-s390x cancel"; then
-            cancel="true"
+            echo intent="cancel" >> "$GITHUB_OUTPUT"
+          if echo "$body" | grep -qi "@Dotnet-s390x build"; then
+            echo intent="build" >> "$GITHUB_OUTPUT"
           fi
-          echo "cancel=$cancel" >> "$GITHUB_OUTPUT"
+
 
       - name: Cancel running/queued Jenkins build
-        if: steps.is_cancel.outputs.cancel == 'true'
+        if: steps.intent.outputs.intent == 'build'
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
@@ -67,7 +67,7 @@ jobs:
           done
 
       - name: Check Jenkins for duplicate PR build
-        if: steps.is_cancel.outputs.cancel != 'true'
+        if: steps.intent.outputs.intent == 'build'
         id: jenkins_check
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
@@ -112,11 +112,11 @@ jobs:
           fi
 
       - name: Comment that build is already in progress
-        if: steps.is_cancel.outputs.cancel != 'true' && steps.jenkins_check.outputs.duplicate == 'true'
+        if: steps.intent.outputs.intent == 'build' && steps.jenkins_check.outputs.duplicate == 'true'
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-          COMMENT="A build is already running or queued for PR #${PR_NUMBER}. Please cancel the running build first by commenting \"Dotnet-s390x cancel\" before triggering the build again."
+          COMMENT="A build has already started for PR ${PR_NUMBER}.Please cancel the running build first by commenting \"Dotnet-s390x cancel\" before triggering the build again."
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                -H "Content-Type: application/json" \
                -X POST \
@@ -124,7 +124,7 @@ jobs:
                "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
 
       - name: Get PR head and base branches
-        if: steps.is_cancel.outputs.cancel != 'true' && steps.jenkins_check.outputs.duplicate == 'false'
+        if: steps.intent.outputs.intent == 'build' && steps.jenkins_check.outputs.duplicate == 'false'
         id: pr_info
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
@@ -137,7 +137,7 @@ jobs:
           echo "base_branch=$base_branch" >> "$GITHUB_OUTPUT"
 
       - name: Trigger Jenkins build
-        if: steps.is_cancel.outputs.cancel != 'true' && steps.jenkins_check.outputs.duplicate == 'false'
+        if: steps.intent.outputs.intent == 'build' && steps.jenkins_check.outputs.duplicate == 'false'
         run: |
           curl -X POST "$JENKINS_URL/job/$TARGET_JOB/buildWithParameters" \
             --user "$JENKINS_USER:$JENKINS_TOKEN" \
