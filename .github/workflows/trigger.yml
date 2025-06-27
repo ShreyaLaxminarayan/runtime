@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event.comment.body != '' &&
-      contains(toJson(github.event.comment.body), '@dotnet-s390x')
+      contains(toJson(github.event.comment.body), '@dotnet-s390x') &&
+      github.event.comment.user.login != 'Dotnet-s390x'
 
     env:
       JENKINS_URL: http://148.100.85.217:8080
@@ -45,7 +46,7 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
-            COMMENT='Hi! Please run "@dotnet-s390x build" for triggering a .NET runtime build on s390x.'
+            COMMENT="Hi! Please run \"@dotnet-s390x build\" for triggering a .NET runtime build on s390x."
             gh api "repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments" \
               --method POST \
               --field body="$COMMENT"
