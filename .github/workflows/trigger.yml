@@ -41,7 +41,7 @@ jobs:
 
 
       - name: Cancel running/queued Jenkins build
-        if: steps.intent.outputs.intent == 'build'
+        if: steps.intent.outputs.intent == 'cancel'
         env:
           PR_NUMBER: ${{ steps.extract.outputs.pr_number }}
         run: |
