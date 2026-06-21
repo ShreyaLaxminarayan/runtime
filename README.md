@@ -1,18 +1,3 @@
-# .NET Runtime
-
-[![Build Status](https://dev.azure.com/dnceng-public/public/_apis/build/status/dotnet/runtime/runtime?branchName=main)](https://dev.azure.com/dnceng-public/public/_build/latest?definitionId=129&branchName=main)
-[![Help Wanted](https://img.shields.io/github/issues/dotnet/runtime/help%20wanted?style=flat-square&color=%232EA043&label=help%20wanted)](https://github.com/dotnet/runtime/labels/help%20wanted)
-[![Good First Issue](https://img.shields.io/github/issues/dotnet/runtime/good%20first%20issue?style=flat-square&color=%232EA043&label=good%20first%20issue)](https://github.com/dotnet/runtime/labels/good%20first%20issue)
-[![Discord](https://img.shields.io/discord/732297728826277939?style=flat-square&label=Discord&logo=discord&logoColor=white&color=7289DA)](https://aka.ms/dotnet-discord)
-
-* [What is .NET?](#what-is-net)
-* [How can I contribute?](#how-can-i-contribute)
-* [Reporting security issues and security bugs](#reporting-security-issues-and-security-bugs)
-* [Filing issues](#filing-issues)
-* [Useful Links](#useful-links)
-* [.NET Foundation](#net-foundation)
-* [License](#license)
-
 This repo contains the code to build the .NET runtime, libraries and shared host (`dotnet`) installers for
 all supported platforms, as well as the sources to .NET runtime and libraries.
 
