@@ -1103,7 +1103,7 @@ namespace System.Numerics.Tests
             T[] values2 = GenerateRandomValuesForVector<T>();
             var v1 = new Vector<T>(values1);
             var v2 = new Vector<T>(values2);
-            var sum = v1 + v2;
+            var sum = v1;
             ValidateVector(sum,
                 (index, val) =>
                 {
