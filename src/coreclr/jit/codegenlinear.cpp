@@ -731,7 +731,11 @@ void CodeGen::genCodeForBBlist()
                 break;
 
             case BBJ_CALLFINALLY:
-                block = genCallFinally(block);
+                //block = genCallFinally(block);
+                break;
+
+//TODO: HAS TO BE REMOVED LATER
+            case BBJ_CALLFINALLYRET:
                 break;
 
             case BBJ_EHCATCHRET:

@@ -10165,7 +10165,19 @@ size_t emitter::emitOutputInstr(insGroup* ig, instrDesc* id, BYTE** dp)
             assert((imm >= -524288) && (imm <= 524287));
             S390_RXY_a(dst, op, id->idReg1(), 0, id->idReg2(), imm);
             break;
-	    
+
+        case INS_stc:
+            op = emitInsCode(ins, fmt);
+            imm = emitGetInsSC(id);
+            S390_RX_a(dst, op, id->idReg1(), 0, id->idReg2(), imm);
+            break;
+
+        case INS_sth:
+            op = emitInsCode(ins, fmt);
+            imm = emitGetInsSC(id);
+            S390_RX_a(dst, op, id->idReg1(), 0, id->idReg2(), imm);
+            break;
+
         case INS_stmg:
             op = emitInsCode(ins, fmt);
             imm = emitGetInsSC(id);
@@ -10849,6 +10861,11 @@ size_t emitter::emitOutputInstr(insGroup* ig, instrDesc* id, BYTE** dp)
             op = emitInsCode(ins, fmt);
             S390_RRE(dst, op, id->idReg1(), id->idReg2());
             break;
+
+        case INS_break:
+           op = emitInsCode(ins, fmt); //no-op
+           dst += emitOutputWord(dst, op);
+           break;
 
         default:
             _ASSERTE(!"NYI");
