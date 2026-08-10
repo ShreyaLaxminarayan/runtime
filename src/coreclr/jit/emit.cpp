@@ -2275,6 +2275,7 @@ void emitter::emitGeneratePrologEpilog()
                 INDEBUG(++funcletPrologCnt);
                 emitBegFuncletProlog(igPh);
 #if !defined(TARGET_S390X)
+//TODO S390X: HAS TO BE IMPLEMENTED LATER.
                 codeGen->genFuncletProlog(igPhBB);
 #endif
                 emitEndFuncletProlog();
@@ -2283,6 +2284,7 @@ void emitter::emitGeneratePrologEpilog()
             case IGPT_FUNCLET_EPILOG:
                 INDEBUG(++funcletEpilogCnt);
                 emitBegFuncletEpilog(igPh);
+//TODO S390X: HAS TO BE IMPLEMENTED LATER
 #if !defined(TARGET_S390X)
                 codeGen->genFuncletEpilog();
 #endif
