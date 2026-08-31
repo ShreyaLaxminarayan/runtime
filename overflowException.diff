@@ -1,0 +1,127 @@
+diff --git a/src/coreclr/jit/codegencommon.cpp b/src/coreclr/jit/codegencommon.cpp
+index 325dcae1eea..d9c1229d17b 100644
+--- a/src/coreclr/jit/codegencommon.cpp
++++ b/src/coreclr/jit/codegencommon.cpp
+@@ -1689,7 +1689,21 @@ void CodeGen::genCheckOverflow(GenTree* tree)
+                 jumpKind = EJ_hs;
+             }
+         }
+-#endif // defined(TARGET_ARMARCH)
++#elif defined(TARGET_S390X)
++
++    if (isUnsignedOverflow)
++    {
++        // Both ADD LOGICAL and SUBTRACT LOGICAL set CC=2 or CC=3 on carry/borrow.
++        // "Branch if Not Low" covers CC >= 2, i.e. the carry/borrow bit is set.
++        jumpKind = EJ_bnl;   // CC >= 2  (carry out or borrow)
++    }
++    else
++    {
++        // Signed ADD / SUBTRACT / MULTIPLY all set CC=3 on overflow.
++        jumpKind = EJ_bo;    // CC == 3  (overflow)
++    }
++
++#endif
+     }
+ 
+     // Jump to the block which will throw the exception
+diff --git a/src/coreclr/jit/emit.h b/src/coreclr/jit/emit.h
+index b9f454fbaa9..361fc10afcb 100644
+--- a/src/coreclr/jit/emit.h
++++ b/src/coreclr/jit/emit.h
+@@ -1231,6 +1231,10 @@ protected:
+                 case INS_bne:
+                 case INS_bgt:
+                 case INS_ble:
++                case INS_bo:
++                case INS_bno:
++                case INS_bl:
++                case INS_bnl:
+                 case INS_blt:
+                 case INS_bge:
+                 case INS_sllg:
+diff --git a/src/coreclr/jit/emitjmps.h b/src/coreclr/jit/emitjmps.h
+index 1fc4ad4be1b..80fa0e1b2ed 100644
+--- a/src/coreclr/jit/emitjmps.h
++++ b/src/coreclr/jit/emitjmps.h
+@@ -70,6 +70,10 @@ JMP_SMALL(lt    , ge    , blt    )  // CC=1 (less than)
+ JMP_SMALL(ge    , lt    , bge    )  // CC=0,2 (greater or equal)
+ JMP_SMALL(hs    , lo    , bge    )
+ JMP_SMALL(lo    , hs    , blt    )
++JMP_SMALL(bo    , bno   , bo     )  // CC==3  signed overflow
++JMP_SMALL(bno   , bo    , bno    )  // CC!=3  no signed overflow
++JMP_SMALL(bnl   , bl    , bnl    )  // CC>=2  (alias for hs; needed for genOverflowCheck)
++JMP_SMALL(bl    , bnl   , bl     )  // CC<=1  (alias for lo; needed for genOverflowCheck)
+ #else
+   #error Unsupported or unset target architecture
+ #endif // target type
+diff --git a/src/coreclr/jit/emits390x.cpp b/src/coreclr/jit/emits390x.cpp
+index 3dcea03263f..df766213542 100644
+--- a/src/coreclr/jit/emits390x.cpp
++++ b/src/coreclr/jit/emits390x.cpp
+@@ -9729,6 +9729,10 @@ BYTE* emitter::emitOutputLJ(insGroup* ig, BYTE* dst, instrDesc* i)
+         case INS_ble: mask = 12; break;
+         case INS_blt: mask = 4;  break;
+         case INS_bge: mask = 10; break;
++        case INS_bnl: mask = 3;  break;
++        case INS_bl:  mask = 12; break;
++        case INS_bo:  mask = 1;  break;
++        case INS_bno: mask = 14; break;
+         default: unreached();
+     }
+ 
+@@ -10377,6 +10381,10 @@ size_t emitter::emitOutputInstr(insGroup* ig, instrDesc* id, BYTE** dp)
+         case INS_ble:
+         case INS_blt:
+         case INS_bge:
++        case INS_bo:
++        case INS_bno:
++        case INS_bl:
++        case INS_bnl:
+             dst = emitOutputLJ(ig, dst, id);
+             sz = sizeof(instrDescJmp);
+             break;
+@@ -13412,9 +13420,9 @@ regNumber emitter::emitInsTernary(instruction ins, emitAttr attr, GenTree* dst,
+     }
+ 
+     bool isMulOverflow = false;
+-#if 0
+     if (dst->gtOverflowEx())
+     {
++/*
+         if ((ins == INS_add) || (ins == INS_adds))
+         {
+             ins = INS_adds;
+@@ -13423,7 +13431,8 @@ regNumber emitter::emitInsTernary(instruction ins, emitAttr attr, GenTree* dst,
+         {
+             ins = INS_subs;
+         }
+-        else if (ins == INS_mul)
++*/
++        if (ins == INS_mul)
+         {
+             isMulOverflow = true;
+             assert(intConst == nullptr); // overflow format doesn't support an int constant operand
+@@ -13433,7 +13442,6 @@ regNumber emitter::emitInsTernary(instruction ins, emitAttr attr, GenTree* dst,
+             assert(!"Invalid ins for overflow check");
+         }
+     }
+-#endif
+ 
+     if (intConst != nullptr)
+     {
+diff --git a/src/coreclr/jit/instrss390x.h b/src/coreclr/jit/instrss390x.h
+index a65ee033434..cb64a72381a 100644
+--- a/src/coreclr/jit/instrss390x.h
++++ b/src/coreclr/jit/instrss390x.h
+@@ -266,6 +266,10 @@ INST(bgt,           "brcl",           0,    0xC04)
+ INST(ble,           "brcl",           0,    0xC04)
+ INST(blt,           "brcl",           0,    0xC04)
+ INST(bge,           "brcl",           0,    0xC04)
++INST(bo,            "brcl",           0,    0xC04)
++INST(bno,           "brcl",           0,    0xC04)
++INST(bl,            "brcl",           0,    0xC04)
++INST(bnl,           "brcl",           0,    0xC04)
+ 
+ //// Vector FP (VRR/VRX, 6 bytes) — used for V16-V31 in hybrid approach
+ INST(wfasb,     "wfasb",        0,      0xe7e3)
